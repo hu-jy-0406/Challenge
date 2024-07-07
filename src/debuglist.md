@@ -16,3 +16,21 @@ rostopic echo /standard_vtol_0/mavros/state查看当前飞机状态
 # SET_POSITION_TARGET_LOCAL_NED coordinate frame 0 unsupported
 在通信python文件 Communication类的初始化中加入以下代码
 self.target_motion.coordinate_frame = self.coordinate_frame
+
+# standard_vtol FW_L1_PERIOD = 12
+![alt text](image.png)
+
+# rostopic list
+/clock
+
+/gazebo/zhihang/standard_vtol/local_position
+
+/standard_vtol_0/mavros/local_position/pose
+
+/xtdrone/standard_vtol_0/cmd
+/xtdrone/standard_vtol_0/cmd_accel_enu
+/xtdrone/standard_vtol_0/cmd_accel_flu
+/xtdrone/standard_vtol_0/cmd_pose_enu
+/xtdrone/standard_vtol_0/cmd_pose_flu
+/xtdrone/standard_vtol_0/cmd_vel_enu
+/xtdrone/standard_vtol_0/cmd_vel_flu
