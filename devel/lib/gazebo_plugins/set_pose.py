@@ -1,0 +1,1 @@
+/home/hujy/catkin_ws/devel/.private/gazebo_plugins/lib/gazebo_plugins/set_pose.py

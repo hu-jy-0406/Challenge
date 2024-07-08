@@ -4,6 +4,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from mavros_msgs.msg import State
+from mavros_msgs.msg import CameraImageCaptured
 
 from enum import Enum
 
@@ -12,8 +13,8 @@ from enum import Enum
 # LINEAR_STEP_SIZE = 0.1
 # ANG_VEL_STEP_SIZE = 0.01
 
-#GPS引导点（gazebo坐标）
-GPS = {"x": -1200, "y": -1200}
+#GPS引导点（mavros坐标）
+GPS = {"x": -3500, "y": -3500}
 
 #任务状态（状态机）
 class TASK(Enum):
@@ -65,7 +66,7 @@ class Drone:
         self.angle_sub = rospy.Subscriber('/zhihang/standard_vtol/angel', Pose, self.callback_angle)
 
         #无人机相机话题
-        #--TODO--#
+        self.img = rospy.Subscriber('/standard_vtol_0/mavros/camera/image_captured', CameraImageCaptured, self.callback_img)
         
         #----------------------------------------------------------------------------------#
         
@@ -75,9 +76,7 @@ class Drone:
         self.mavros_pose = PoseStamped()
         self.state = State()
         self.angle = Pose()
-        
-        self.pose = Pose()
-        self.twist = Twist()
+        self.img = CameraImageCaptured()
         #-----------------------------------------------------------------------------------#
         
         
@@ -108,6 +107,12 @@ class Drone:
         
     def callback_angle(self, msg):
         self.angle = msg
+        
+    def callback_img(self, msg):
+        self.img = msg
+        print("----img----")
+        print(self.img)
+        print("----img----")
     #-----------------------------------------------------------------------------------------#
     
     
@@ -181,6 +186,12 @@ class Drone:
         self.cmd_pub.publish(self.cmd)
         self.cmd = ''
     
+def Transform(g_x, g_y, g_z):
+    #将gazebo坐标转换为mavros enu坐标
+    m_x = g_x - 2300.0
+    m_y = g_y - 2300.0
+    m_z = g_z - 4.50
+    return m_x, m_y, m_z
 
 if __name__ == '__main__':
     
