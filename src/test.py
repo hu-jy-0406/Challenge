@@ -1,12 +1,15 @@
 import rospy
+
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from mavros_msgs.msg import State
-from mavros_msgs.msg import CameraImageCaptured
+from sensor_msgs.msg import CompressedImage
 
 from enum import Enum
+import cv2
+import numpy as np
 
 # MAX_LINEAR = 1000
 # MAX_ANG_VEL = 0.5
@@ -38,6 +41,9 @@ class Drone:
         
         #self.local_pose_pub = rospy.Publisher('/xtdrone/standard_vtol_0/mavros/local_position/pose', PoseStamped, queue_size=1)
         
+        #不知道是啥坐标系
+        #self.cmd_set_pose_local_pub = rospy.Publisher('standard_vtol_0/mavros/setpoint_position/local', PoseStamped, queue_size=1)
+        
         #flu坐标系：Foward（前进方向）, Left（左侧方向）, Up（上方）
         #flu坐标系下的无人机速度（Twist用于描述物体的运动状态，包括线速度和角速度）
         self.cmd_vel_flu_pub = rospy.Publisher('/xtdrone/standard_vtol_0/cmd_vel_flu', Twist, queue_size=1)
@@ -64,10 +70,8 @@ class Drone:
         self.state_sub = rospy.Subscriber('/standard_vtol_0/mavros/state', State, self.callback_state)
         #无人机偏航角（无人机位置向量与目标位置向量的夹角）
         self.angle_sub = rospy.Subscriber('/zhihang/standard_vtol/angel', Pose, self.callback_angle)
-
-        #无人机相机话题
-        self.img = rospy.Subscriber('/standard_vtol_0/mavros/camera/image_captured', CameraImageCaptured, self.callback_img)
-        
+        #无人机相机话题，接受压缩后的图像（摄像头在飞机的底部）
+        self.compressed_img_sub = rospy.Subscriber('/standard_vtol_0/camera/image_raw/compressed', CompressedImage, self.callback_compressed_img)
         #----------------------------------------------------------------------------------#
         
         #------------------------------------相关话题信息------------------------------------#
@@ -76,7 +80,7 @@ class Drone:
         self.mavros_pose = PoseStamped()
         self.state = State()
         self.angle = Pose()
-        self.img = CameraImageCaptured()
+        self.compressed_img = CompressedImage()
         #-----------------------------------------------------------------------------------#
         
         
@@ -108,11 +112,11 @@ class Drone:
     def callback_angle(self, msg):
         self.angle = msg
         
-    def callback_img(self, msg):
-        self.img = msg
-        print("----img----")
-        print(self.img)
-        print("----img----")
+    def callback_compressed_img(self, msg):
+        self.compressed_img = msg
+        #可视化图像
+        ImgShow(self.compressed_img)
+        
     #-----------------------------------------------------------------------------------------#
     
     
@@ -147,10 +151,10 @@ class Drone:
         '''
         #起飞高度大于30m时，切换至固定翼模式
         #参数是测试用的
-        if self.gazebo_position.position.z >= 30:
-            self.cmd_pose_enu.position.x = -100
-            self.cmd_pose_enu.position.y = -100
-            self.cmd_pose_enu.position.z = 25
+        if self.gazebo_position.position.z >= 30.0:
+            self.cmd_pose_enu.position.x = -100.0
+            self.cmd_pose_enu.position.y = -100.0
+            self.cmd_pose_enu.position.z = 30.0
             self.transition_state = 'plane'
             self.cmd = self.transition_state
             self.m_task = TASK.TRACK
@@ -181,6 +185,13 @@ class Drone:
     def PubMsg(self):
         if self.transition_state == 'plane':
             self.cmd_pose_enu_pub.publish(self.cmd_pose_enu)
+            '''
+            target = PoseStamped()
+            target.pose.position.x = self.cmd_pose_enu.position.x
+            target.pose.position.y = self.cmd_pose_enu.position.y
+            target.pose.position.z = self.cmd_pose_enu.position.z
+            self.cmd_set_pose_local_pub.publish(target)
+            '''
         else:
             self.cmd_vel_flu_pub.publish(self.cmd_vel_flu)
         self.cmd_pub.publish(self.cmd)
@@ -193,6 +204,12 @@ def Transform(g_x, g_y, g_z):
     m_z = g_z - 4.50
     return m_x, m_y, m_z
 
+def ImgShow(compressed_img):
+    np_arr = np.frombuffer(compressed_img.data, np.uint8)
+    image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    cv2.imshow("Camera Image", image)
+    cv2.waitKey(1)
+    
 if __name__ == '__main__':
     
     drone = Drone()
@@ -222,7 +239,7 @@ if __name__ == '__main__':
             pass
         
         drone.PubMsg()
-        rospy.sleep(1)
+    rospy.sleep(1)
         
     
     

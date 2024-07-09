@@ -11,7 +11,8 @@ python3 vtol_keyboard_control.py sandard_vtol 1 vel
 
 # 常用命令
 rostopic list查看当前话题
-rostopic echo /standard_vtol_0/mavros/state查看当前飞机状态
+rostopic echo [topicname]查看话题中的消息
+rostopic type [topicname]查看话题中消息的数据类型
 
 # SET_POSITION_TARGET_LOCAL_NED coordinate frame 0 unsupported
 在通信python文件 Communication类的初始化中加入以下代码
